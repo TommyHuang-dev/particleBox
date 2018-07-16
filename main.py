@@ -35,10 +35,10 @@ backCol = (245, 245, 245)
 particleList = []
 
 # constants
-GRAVITY_CONST = 10000
+GRAVITY_CONST = 100
 
 # test stuff, delete later!!
-testCircle1 = Particle(init_pos_x=400, init_pos_y=400, init_vel=35, init_direction=math.pi/2, init_mass=50)
+testCircle1 = Particle(init_pos_x=400, init_pos_y=400, init_vel=36, init_direction=math.pi/2, init_mass=150)
 particleList.append(testCircle1)
 testCircle2 = Particle(init_pos_x=600, init_pos_y=400, init_vel=0, init_direction=0, init_mass=3000)
 particleList.append(testCircle2)
@@ -60,7 +60,7 @@ while True:
 
             # equation for force of gravity:
             # gravitational constant * (mass1 + mass2) / distance^2 / 60 ticks per second
-            gravity_force = GRAVITY_CONST * ((particleList[i].mass + particleList[j].mass) / distance ** 2) / 30
+            gravity_force = GRAVITY_CONST * ((particleList[i].mass * particleList[j].mass) / distance ** 2) / 30
             gravity_direction = math.atan2(-diff[1], diff[0])
 
             # apply the FORCE
@@ -87,6 +87,14 @@ while True:
                                      int(particleList[i].calc_size() + wobble), particleList[i].calc_colour())
         pygame.gfxdraw.aacircle(screen, int(particleList[i].posX), int(particleList[i].posY),
                                 int(particleList[i].calc_size() + wobble), (0, 0, 0))
+
+    # garbage collection!!! Removes particles that fly too far
+    for i in range(len(particleList)):
+        # garbage collection!!! If a particle is super far away, delete it
+        if not -10000 < particleList[i].posX < disLength + 10000 or \
+                not -10000 < particleList[i].posY < disHeight + 10000:
+            del (particleList[i])
+            break
 
     # update display!
     pygame.display.update()
