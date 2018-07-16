@@ -15,7 +15,7 @@ import math
 class Particle:
     # initial attributes
     damage = 0
-    dmg_threshold = 1
+    dmgThreshold = 1
     size = 1
 
     # initialize the object
@@ -29,7 +29,7 @@ class Particle:
 
         # based on the defined attributes in __init__
         damage = 0  # starts with minimum damage, gradually lowers to 0 if greater than 0
-        self.dmg_threshold = self.calc_threshold()  # explode if damage passes this
+        self.dmgThreshold = self.calc_threshold()  # explode if damage passes this
         self.size = self.calc_size()  # radius of the particle
 
     # functions of particle
@@ -40,18 +40,37 @@ class Particle:
     def calc_size(self):
         return math.sqrt(self.mass)
 
+    def calc_colour(self):
+        visual_dmg = int(self.damage / self.dmgThreshold * 200)
+        return 50 + visual_dmg, 200 - visual_dmg, 50
+
     # returns how much the particle heals
     def calc_heal(self):
-        return math.sqrt((self.damage / 200) + (self.mass / 200))
+        return math.sqrt(self.damage / 300) + math.sqrt(self.mass / 600)
 
     def update_self(self):
         self.dmgThreshold = self.calc_threshold()
         self.size = self.calc_size()
         self.damage -= self.calc_heal()
+        if self.damage < 0:
+            self.damage = 0
 
+    def move(self):
+        change = angVel_to_xy(self.direction, self.vel)
+        self.posX += change[0] / 30
+        self.posY += change[1] / 30
 
-# class Test:
-#     def __init__(self, val):
-#         self.a = val
-#     def print_double(self):
-#         print(float(self.a) * 2)
+    # applies a force to the object before mass is included
+    def apply_force(self, magnitude, force_direction):
+        force_effect = magnitude / self.mass
+        # get the change in xy_vel
+        initial_xy_vel = list(angVel_to_xy(self.direction, self.vel))
+        change_xy_vel = list(angVel_to_xy(force_direction, force_effect))
+        initial_xy_vel[0] += change_xy_vel[0]
+        initial_xy_vel[1] += change_xy_vel[1]
+
+        # re-convert back to angle + velocity
+        new_angvel = xyVel_to_angVel(initial_xy_vel)
+        self.vel = new_angvel[1]
+        self.direction = new_angvel[0]
+
