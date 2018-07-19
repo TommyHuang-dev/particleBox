@@ -57,8 +57,8 @@ class Particle:
 
     def move(self):
         change = angVel_to_xy(self.direction, self.vel)
-        self.posX += change[0] / 30
-        self.posY += change[1] / 30
+        self.posX += change[0] / 20
+        self.posY += change[1] / 20
 
     # applies a force to the object before mass is included
     def apply_force(self, magnitude, force_direction):

@@ -23,7 +23,7 @@ time.sleep(0.5)
 
 # setup display and clock
 clock = pygame.time.Clock()
-disLength = 1200
+disLength = 1400
 disHeight = 800
 screen = pygame.display.set_mode((disLength, disHeight))
 pygame.display.set_caption("Particle Box")
@@ -35,18 +35,100 @@ backCol = (245, 245, 245)
 particleList = []
 
 # constants
-GRAVITY_CONST = 100
+GRAVITY_CONST = 400
 
-# test stuff, delete later!!
-testCircle1 = Particle(init_pos_x=400, init_pos_y=400, init_vel=36, init_direction=math.pi/2, init_mass=150)
-particleList.append(testCircle1)
-testCircle2 = Particle(init_pos_x=600, init_pos_y=400, init_vel=0, init_direction=0, init_mass=3000)
-particleList.append(testCircle2)
-#testCircle3 = Particle(init_pos_x=700, init_pos_y=300, init_vel=10, init_direction=math.pi/2*3, init_mass=500)
-#particleList.append(testCircle3)
+# create new particles
+newParticleSize = 100
+
+# USER EXPERIENCE :D (UI)
+sizeFont = pygame.font.SysFont('Courier New', 20)
+
+# user controls
+buttonPressed = False
+selectedPos = [0, 0]
+changeSizeDelay = [0, 5]
+cameraSpeed = 4
+
+timeAccel = 1
+changeAccelDelay = [0, 15]
 
 while True:
     screen.fill(backCol)
+
+    # change size of newly created particles
+    changeSizeDelay[0] -= 1 * (1 / timeAccel)
+
+    pressed = pygame.key.get_pressed()
+    if pressed[pygame.K_r] and changeSizeDelay[0] <= 0:
+        newParticleSize += 10
+        changeSizeDelay[0] = changeSizeDelay[1]
+    elif pressed[pygame.K_f] and changeSizeDelay[0] <= 0:
+        newParticleSize -= 10
+        changeSizeDelay[0] = changeSizeDelay[1]
+    elif pressed[pygame.K_t] and changeSizeDelay[0] <= 0:
+        newParticleSize += 100
+        changeSizeDelay[0] = changeSizeDelay[1]
+    elif pressed[pygame.K_g] and changeSizeDelay[0] <= 0:
+        newParticleSize -= 100
+        changeSizeDelay[0] = changeSizeDelay[1]
+
+    if newParticleSize <= 10:
+        newParticleSize = 10
+
+    # speed up or slow down time
+    changeAccelDelay[0] -= 1 * (1 / timeAccel)
+    if pressed[pygame.K_e] and changeAccelDelay[0] <= 0:  # speed up
+        timeAccel *= 2
+        changeAccelDelay[0] = changeAccelDelay[1]
+        if timeAccel > 4:
+            timeAccel = 4
+    elif pressed[pygame.K_q] and changeAccelDelay[0] <= 0:  # slow down
+        timeAccel *= 0.5
+        changeAccelDelay[0] = changeAccelDelay[1]
+        if timeAccel < 0.5:
+            timeAccel = 0.5
+
+    # create new particles
+    mouse = pygame.mouse.get_pressed()
+    mousePos = pygame.mouse.get_pos()
+    # set location
+    if mouse[0] == 1 and not buttonPressed:
+        buttonPressed = True
+        selectedPos = mousePos
+
+    # set velocity and initialize particle on release
+    if buttonPressed and mouse[0] == 0:
+        buttonPressed = False
+        # handle velocities and angles here:
+        distance = math.sqrt((selectedPos[0] - mousePos[0]) ** 2 + (selectedPos[1] - mousePos[1]) ** 2)
+        initVel = distance / 4
+        initAngle = math.atan2(-(selectedPos[1] - mousePos[1]), selectedPos[0] - mousePos[0])
+
+        # instantiate!!! very exciting!!! waow
+        newlyCreatedParticle = Particle(selectedPos[0], selectedPos[1], initVel, initAngle, newParticleSize)
+        particleList.append(newlyCreatedParticle)
+
+    # otherwise, draw a outline/preview
+    elif buttonPressed and mouse[0] == 1:
+        pygame.draw.line(screen,(100, 50, 0), mousePos, selectedPos)
+        pygame.gfxdraw.aacircle(screen, selectedPos[0], selectedPos[1],
+                                int(math.sqrt(newParticleSize)) , (0, 0, 0))
+
+    # camera movement
+    cam_move = [0, 0]
+    if pressed[pygame.K_w]:  # up
+        cam_move[1] = - cameraSpeed
+    elif pressed[pygame.K_s]:  # down
+        cam_move[1] = cameraSpeed
+    if pressed[pygame.K_a]:  # left
+        cam_move[0] = - cameraSpeed
+    elif pressed[pygame.K_d]:  # right
+        cam_move[0] = cameraSpeed
+
+    if cam_move != [0, 0]:
+        for i in range(len(particleList)):
+            particleList[i].posX += - cam_move[0]
+            particleList[i].posY += - cam_move[1]
 
     # apply forces and move each particle
     for i in range(len(particleList)):
@@ -96,11 +178,23 @@ while True:
             del (particleList[i])
             break
 
+    # UI elements
+    # display the size of newly created particles
+    size_text = sizeFont.render("size: " + str(newParticleSize), False, (0, 0, 0))
+    screen.blit(size_text, (30, disHeight - 50))
+
+    # display time warp!!
+    if timeAccel >= 1:
+        time_text = sizeFont.render("time scale: " + str(int(timeAccel)) + "x", False, (0, 0, 0))
+    else:
+        time_text = sizeFont.render("time scale: " + str(round(timeAccel, 1)) + "x", False, (0, 0, 0))
+    screen.blit(time_text, (30, disHeight - 100))
+
     # update display!
     pygame.display.update()
 
     # should make it 60FPS max
-    clock.tick(60)
+    clock.tick(int(60 * timeAccel))
     for event in pygame.event.get():
         if event.type == pygame.QUIT: sys.exit()
 
