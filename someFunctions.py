@@ -7,9 +7,12 @@ import math
 def xyVel_to_angVel(xy_velocities):
     return math.atan2(-(xy_velocities[1]), xy_velocities[0]), math.sqrt(xy_velocities[0] ** 2 + xy_velocities[1] ** 2)
 
-
 # takes in a angle (radians) and velocity and converts it into x velocity and y velocity
 # returns [xVelocity, yVelocity]
 def angVel_to_xy(angle, velocity):
     return (velocity * math.cos(angle)), (velocity * - math.sin(angle))
+
+def calc_hypotenuse(xDiff, yDiff):
+    return math.sqrt(xDiff ** 2 + yDiff ** 2)
+
 
