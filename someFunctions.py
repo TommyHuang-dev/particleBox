@@ -12,6 +12,7 @@ def xyVel_to_angVel(xy_velocities):
 def angVel_to_xy(angle, velocity):
     return (velocity * math.cos(angle)), (velocity * - math.sin(angle))
 
+# PYTHAGOREAN THEOREM YAY
 def calc_hypotenuse(xDiff, yDiff):
     return math.sqrt(xDiff ** 2 + yDiff ** 2)
 

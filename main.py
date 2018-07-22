@@ -132,6 +132,54 @@ while True:
             particleList[i].posX += - cam_move[0]
             particleList[i].posY += - cam_move[1]
 
+    # check for collisions, break them up if too much damage is taken
+    i = 0
+    while i < len(particleList):
+        j = i + 1
+        while j < len(particleList):
+            # get change in x and y and distance
+            diff = (particleList[i].posX - particleList[j].posX), (particleList[i].posY - particleList[j].posY)
+            distance = math.sqrt(diff[0] ** 2 + diff[1] ** 2)
+
+            if distance < (particleList[i].calc_size() + particleList[j].calc_size() + 1) * 0.95:
+                # calculate collision velocity for damage
+                velocity1 = angVel_to_xy(particleList[i].direction, particleList[i].vel)
+                velocity2 = angVel_to_xy(particleList[j].direction, particleList[j].vel)
+                collVel = [velocity1[0] - velocity2[0], velocity1[1] - velocity2[1]]
+
+                # 1/2 mv^2
+                totalFinalVel = calc_hypotenuse(collVel[0], collVel[1])
+                impactDamage = ((totalFinalVel / 50) ** 2 * (particleList[i].mass + particleList[j].mass)) / 40
+                print(impactDamage)
+
+                # calculate the initial velocity of the new particle (total velocity / mass)
+                initialXVel = velocity1[0] * particleList[i].mass + velocity2[0] * particleList[j].mass
+                initialYVel = velocity1[1] * particleList[i].mass + velocity2[1] * particleList[j].mass
+
+                travellingAngVel = xyVel_to_angVel([initialXVel, initialYVel])
+
+                # create a new particle, based on the speeds of the two colliding particles
+                newParticle = Particle(particleList[i].posX - (
+                diff[0] * particleList[j].mass / (particleList[i].mass + particleList[j].mass)),
+                                       particleList[i].posY - (diff[1] * particleList[j].mass / (
+                                       particleList[i].mass + particleList[j].mass)),
+                                       travellingAngVel[1] / (particleList[i].mass + particleList[j].mass),
+                                       travellingAngVel[0],
+                                       particleList[i].mass + particleList[j].mass)
+
+                # update all attributes
+                newParticle.update_self()
+                newParticle.damage = particleList[i].damage + particleList[j].damage + impactDamage
+                # delete old particles, start new one
+                particleList[j] = newParticle
+                del (particleList[i])
+            j += 1
+
+        i += 1
+        # create new particles from damaged one
+        # if particleList[i].damage > particleList[i].dmgThreshold:
+        # explode(particleList[i], particleList)
+
     # apply forces and move each particle
     for i in range(len(particleList)):
         # update particle stats like damage
@@ -157,51 +205,6 @@ while True:
 
         # movement of the particle
         particleList[i].move()
-
-    # check for collisions, break them up if too much damage is taken
-    i = 0
-    while i < len(particleList):
-        j = i + 1
-        while j < len(particleList):
-            # get change in x and y and distance
-            diff = (particleList[i].posX - particleList[j].posX), (particleList[i].posY - particleList[j].posY)
-            distance = math.sqrt(diff[0] ** 2 + diff[1] ** 2)
-
-            if distance < (particleList[i].calc_size() + particleList[j].calc_size() + 1) * 0.95:
-                # calculate collision velocity for damage
-                velocity1 = angVel_to_xy(particleList[i].direction, particleList[i].vel)
-                velocity2 = angVel_to_xy(particleList[j].direction, particleList[j].vel)
-                collVel = [velocity1[0] - velocity2[0], velocity1[1] - velocity2[1]]
-
-                # 1/2 mv^2
-                totalFinalVel = calc_hypotenuse(collVel[0], collVel[1])
-                impactDamage = ((totalFinalVel / 40) ** 2 * (particleList[i].mass + particleList[j].mass)) / 40
-                print(impactDamage)
-
-                # calculate the initial velocity of the new particle (total velocity / mass)
-                initialXVel = velocity1[0] * particleList[i].mass + velocity2[0] * particleList[j].mass
-                initialYVel = velocity1[1] * particleList[i].mass + velocity2[1] * particleList[j].mass
-
-                travellingAngVel = xyVel_to_angVel([initialXVel, initialYVel])
-
-                # create a new particle, based on the speeds of the two colliding particles
-                newParticle = Particle(particleList[i].posX - (diff[0] * particleList[j].mass / (particleList[i].mass + particleList[j].mass)),
-                                    particleList[i].posY - (diff[1] * particleList[j].mass / (particleList[i].mass + particleList[j].mass)),
-                                    travellingAngVel[1] / (particleList[i].mass + particleList[j].mass), travellingAngVel[0],
-                                    particleList[i].mass + particleList[j].mass)
-
-                # update all attributes
-                newParticle.update_self()
-                newParticle.damage = particleList[i].damage + particleList[j].damage + impactDamage
-                # delete old particles, start new one
-                particleList[j] = newParticle
-                del(particleList[i])
-            j += 1
-
-        i += 1
-        # create new particles from damaged one
-        # if particleList[i].damage > particleList[i].dmgThreshold:
-            # explode(particleList[i], particleList)
 
     # display the particles, add special effects
     for i in range(len(particleList)):
