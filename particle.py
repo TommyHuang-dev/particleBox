@@ -17,6 +17,7 @@ class Particle:
     damage = 0
     dmgThreshold = 1
     size = 1
+    invul = 0  # invulnerability frames
 
     # initialize the object
     def __init__(self, init_pos_x, init_pos_y, init_vel, init_direction, init_mass):
@@ -34,7 +35,7 @@ class Particle:
 
     # functions of particle
     def calc_threshold(self):
-        return self.mass
+        return (self.mass ** 1.04) + 5
 
     # get radius of particle
     def calc_size(self):
@@ -42,16 +43,17 @@ class Particle:
 
     def calc_colour(self):
         visual_dmg = int(self.damage / self.dmgThreshold * 200)
-        return 50 + visual_dmg, 200 - visual_dmg, 50
+        return 100 + int(visual_dmg * 0.75), 100 - int(visual_dmg * 0.4), 100 - int(visual_dmg * 0.4)
 
     # returns how much the particle heals
     def calc_heal(self):
-        return math.sqrt(self.damage / 300) + math.sqrt(self.mass / 600)
+        return math.sqrt(self.damage / 300) + math.sqrt(self.dmgThreshold / 600)
 
     def update_self(self):
         self.dmgThreshold = self.calc_threshold()
         self.size = self.calc_size()
         self.damage -= self.calc_heal()
+        self.invul -= 1
         if self.damage < 0:
             self.damage = 0
 
