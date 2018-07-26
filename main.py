@@ -1,4 +1,5 @@
 from particle import Particle
+from shockwave import Shockwave
 from someFunctions import *
 import pygame
 from pygame import gfxdraw
@@ -12,7 +13,7 @@ import sys
 
 
 # this function breaks a particle apart if it takes too much damage
-def explode(particle, list):
+def split(particle, list):
     pass
     # init_pos_x, init_pos_y, init_vel, init_direction, init_mass
     abs_excess = particle.damage - particle.calc_threshold()  # e.g. 1200dmg, 1000threshold = 200 abs_excess
@@ -26,8 +27,8 @@ def explode(particle, list):
 
     for i in range(num_spawned):
         # ejection mass increases with lower spawn number and higher excess
-        ejection_mass = random.randint(int(abs_excess / num_spawned * 0.2),
-                                       int(abs_excess / num_spawned * 1.2))
+        ejection_mass = random.randint(int(abs_excess / num_spawned * 0.15),
+                                       int(abs_excess / num_spawned * 1.0))
         # make sure ejection mass doesn't exceed 1/3 of the object's mass or is too low
         if ejection_mass * 3 > particle.mass:
             ejection_mass = int(particle.mass / 3)
@@ -41,8 +42,8 @@ def explode(particle, list):
         particle.update_self()
 
         # random angle that the particle will be ejected from
-        ejection_force = random.randint(int(ejection_mass * 20.0 * (per_excess * 1.2 + 1)),
-                                        int(ejection_mass * 30.0 * (per_excess * 1.5 + 1)))
+        ejection_force = random.randint(int(ejection_mass * 20.0 * (per_excess * 0.8 + 1) + math.sqrt(abs_excess) * 0.01),
+                                        int(ejection_mass * 25.0 * (per_excess * 1.0 + 1) + math.sqrt(abs_excess) * 0.01))
         ejection_angle = random.uniform(0, math.pi * 2)
 
         # apply the forces
@@ -51,7 +52,7 @@ def explode(particle, list):
 
         # create new particle, apply force to old particle
         new_particle = Particle(particle.posX + init_pos[0], particle.posY +
-                                init_pos[1], init_vel, ejection_angle, ejection_mass)
+                                init_pos[1], init_vel, ejection_angle, ejection_mass, particle.type)
         new_particle.invul = 15  # invulnerable for 0.1s so it doesnt instantly recombine
         new_particle.damage = random.uniform(new_particle.calc_threshold() * 0.4, new_particle.calc_threshold() * 0.8)
         particle.apply_force(ejection_force, ejection_angle + math.pi)
@@ -67,6 +68,19 @@ def explode(particle, list):
         if abs_excess < 0:
             break
 
+
+# given two masses and their x y coords,, this function finds their center of mass
+def find_center_of_mass(particle1, particle2):
+    xy_diff = [particle1.posX - particle2.posX, particle1.posY - particle2.posY]
+    mass_diff = particle2.mass / (particle1.mass + particle2.mass)
+    center_pos = [particle1.posX - (xy_diff[0] * mass_diff), particle1.posY - (xy_diff[1] * mass_diff)]
+    return center_pos
+
+# find the average x y without weighting the mass
+def find_center(particle1, particle2):
+    xy_diff = [particle1.posX - particle2.posX, particle1.posY - particle2.posY]
+    center_pos = [particle1.posX - (xy_diff[0] / 2), particle1.posY - (xy_diff[1] / 2)]
+    return center_pos
 
 # setup pygame
 pygame.mixer.pre_init(22050, -16, 2, 512)
@@ -85,14 +99,16 @@ pygame.display.set_caption("Particle Box")
 # colours
 backCol = (245, 245, 245)
 
-# this list holds all particle objects
+# this list holds all particle and shockwave objects
 particleList = []
+shockwaveList = []
 
 # constants
-GRAVITY_CONST = 300
+GRAVITY_CONST = 400
 
 # create new particles
 newParticleSize = 100
+newParticleType = "matter"  # matter or antimatter
 
 # USER EXPERIENCE :D (UI)
 sizeFont = pygame.font.SysFont('Courier New', 20)
@@ -143,15 +159,22 @@ while True:
             timeAccel = 0.5
 
     # create new particles
+    # left click = matter, right click = antimatter
     mouse = pygame.mouse.get_pressed()
     mousePos = pygame.mouse.get_pos()
     # set location
-    if mouse[0] == 1 and not buttonPressed:
-        buttonPressed = True
-        selectedPos = mousePos
+    if not buttonPressed:
+        if mouse[0] == 1:
+            newParticleType = "matter"
+            buttonPressed = True
+            selectedPos = mousePos
+        elif mouse[2] == 1:
+            newParticleType = "antimatter"
+            buttonPressed = True
+            selectedPos = mousePos
 
     # set velocity and initialize particle on release
-    if buttonPressed and mouse[0] == 0:
+    if buttonPressed and mouse[0] == 0 and mouse[2] == 0:
         buttonPressed = False
         # handle velocities and angles here:
         distance = math.sqrt((selectedPos[0] - mousePos[0]) ** 2 + (selectedPos[1] - mousePos[1]) ** 2)
@@ -159,11 +182,11 @@ while True:
         initAngle = math.atan2(-(selectedPos[1] - mousePos[1]), selectedPos[0] - mousePos[0])
 
         # instantiate!!! very exciting!!! waow
-        newlyCreatedParticle = Particle(selectedPos[0], selectedPos[1], initVel, initAngle, newParticleSize)
+        newlyCreatedParticle = Particle(selectedPos[0], selectedPos[1], initVel, initAngle, newParticleSize, newParticleType)
         particleList.append(newlyCreatedParticle)
 
     # otherwise, draw a outline/preview
-    elif buttonPressed and mouse[0] == 1:
+    elif buttonPressed and (mouse[0] == 1 or mouse[2] == 1):
         pygame.draw.line(screen, (100, 50, 0), mousePos, selectedPos)
         pygame.gfxdraw.aacircle(screen, selectedPos[0], selectedPos[1],
                                 int(math.sqrt(newParticleSize)), (0, 0, 0))
@@ -183,6 +206,9 @@ while True:
         for i in range(len(particleList)):
             particleList[i].posX += - cam_move[0]
             particleList[i].posY += - cam_move[1]
+        for i in range(len(shockwaveList)):
+            shockwaveList[i].posX += - cam_move[0]
+            shockwaveList[i].posY += - cam_move[1]
 
     # check for collisions, break them up if too much damage is taken
     i = 0
@@ -196,36 +222,69 @@ while True:
 
             if distance < (particleList[i].calc_size() + particleList[j].calc_size() + 1) * 0.99 and \
                     particleList[i].invul <= 0 and particleList[j].invul <= 0:
-                # calculate collision velocity for damage
-                velocity1 = angVel_to_xy(particleList[i].direction, particleList[i].vel)
-                velocity2 = angVel_to_xy(particleList[j].direction, particleList[j].vel)
-                collVel = [velocity1[0] - velocity2[0], velocity1[1] - velocity2[1]]
 
-                # 1/2 mv^2
-                totalFinalVel = calc_hypotenuse(collVel[0], collVel[1])
-                impactDamage = (totalFinalVel / 20) ** 2 * min([particleList[i].mass, particleList[j].mass]) / 8
+                # collision for two particles of same type
+                if particleList[i].type == particleList[j].type:
+                    # calculate collision velocity for damage
+                    velocity1 = angVel_to_xy(particleList[i].direction, particleList[i].vel)
+                    velocity2 = angVel_to_xy(particleList[j].direction, particleList[j].vel)
+                    collVel = [velocity1[0] - velocity2[0], velocity1[1] - velocity2[1]]
 
-                # calculate the initial velocity of the new particle (total velocity / mass)
-                initialXVel = velocity1[0] * particleList[i].mass + velocity2[0] * particleList[j].mass
-                initialYVel = velocity1[1] * particleList[i].mass + velocity2[1] * particleList[j].mass
+                    # 1/2 mv^2
+                    totalFinalVel = calc_hypotenuse(collVel[0], collVel[1])
+                    impactDamage = (totalFinalVel / 20) ** 2 * min([particleList[i].mass, particleList[j].mass]) / 12
 
-                travellingAngVel = xyVel_to_angVel([initialXVel, initialYVel])
+                    # calculate the initial velocity of the new particle (total velocity / mass)
+                    initialXVel = velocity1[0] * particleList[i].mass + velocity2[0] * particleList[j].mass
+                    initialYVel = velocity1[1] * particleList[i].mass + velocity2[1] * particleList[j].mass
 
-                # create a new particle, based on the speeds of the two colliding particles
-                newParticle = Particle(particleList[i].posX - (
-                    diff[0] * particleList[j].mass / (particleList[i].mass + particleList[j].mass)),
-                                       particleList[i].posY - (diff[1] * particleList[j].mass / (
-                                       particleList[i].mass + particleList[j].mass)),
-                                       travellingAngVel[1] / (particleList[i].mass + particleList[j].mass),
-                                       travellingAngVel[0],
-                                       particleList[i].mass + particleList[j].mass)
+                    travellingAngVel = xyVel_to_angVel([initialXVel, initialYVel])
 
-                # update all attributes
-                newParticle.update_self()
-                newParticle.damage = particleList[i].damage + particleList[j].damage + impactDamage
-                # delete old particles, start new one
-                particleList[j] = newParticle
-                del (particleList[i])
+                    # create a new particle, based on the speeds of the two colliding particles and
+                    # their center of masses
+                    centerOfMassXY = find_center_of_mass(particleList[i], particleList[j])
+                    newParticle = Particle(centerOfMassXY[0],
+                                           centerOfMassXY[1],
+                                           travellingAngVel[1] / (particleList[i].mass + particleList[j].mass),
+                                           travellingAngVel[0],
+                                           particleList[i].mass + particleList[j].mass,
+                                           particleList[i].type)
+
+                    # update all attributes
+                    newParticle.update_self()
+                    newParticle.damage = particleList[i].damage + particleList[j].damage + impactDamage
+
+                    # CREATE A FAKE SMALL SHOCKWAVE FOR VISUAL EFFECT
+                    # calculate mass loss and the energy released based on the smaller of the two particles
+                    shockwaveXY = find_center(particleList[i], particleList[j])
+
+                    if impactDamage > 1:
+                        newShockwave = Shockwave(shockwaveXY[0], shockwaveXY[1], impactDamage / 2.5, True)
+                        shockwaveList.append(newShockwave)
+
+                    # delete old particles, start new one
+                    particleList[j] = newParticle
+                    del (particleList[i])
+
+                # collision for anti-matter / matter particles (EXPLOSION!!)
+                elif particleList[i].type != particleList[j].type:
+                    # calculate mass loss and the energy released based on the smaller of the two particles
+                    massLoss = min(particleList[i].mass, particleList[j].mass)
+                    energyRelease = massLoss * 10 * 2
+                    shockwaveXY = find_center(particleList[i], particleList[j])
+
+                    # cause particles to lose mass
+                    particleList[i].mass -= massLoss
+                    particleList[j].mass -= massLoss
+                    # delete the particles if mass gets too low
+                    if particleList[j].mass < 10:
+                        del(particleList[j])
+                    if particleList[i].mass < 10:
+                        del(particleList[i])
+
+                    # generate a new shockwave!! SPOOKY
+                    newShockwave = Shockwave(shockwaveXY[0], shockwaveXY[1], energyRelease, False)
+                    shockwaveList.append(newShockwave)
 
             j += 1
 
@@ -234,7 +293,7 @@ while True:
     # create new particles from damaged one
     for i in range(len(particleList)):
         if particleList[i].damage > particleList[i].dmgThreshold:
-            explode(particleList[i], particleList)
+            split(particleList[i], particleList)
 
     # apply forces and move each particle
     for i in range(len(particleList)):
@@ -269,16 +328,38 @@ while True:
         wobble = random.uniform(-math.sqrt(particleList[i].damage) / 25, math.sqrt(particleList[i].damage) / 25)
 
         # draw on screen
-        try:
-            pygame.gfxdraw.filled_circle(screen, int(particleList[i].posX), int(particleList[i].posY),
-                                         int(particleList[i].calc_size() + wobble), particleList[i].calc_colour())
-            pygame.gfxdraw.aacircle(screen, int(particleList[i].posX), int(particleList[i].posY),
-                                    int(particleList[i].calc_size() + wobble), (0, 0, 0))
-        except TypeError:
-            pygame.gfxdraw.filled_circle(screen, int(particleList[i].posX), int(particleList[i].posY),
-                                         int(particleList[i].calc_size() + wobble), (250, 0, 50))
-            pygame.gfxdraw.aacircle(screen, int(particleList[i].posX), int(particleList[i].posY),
-                                    int(particleList[i].calc_size() + wobble), (0, 0, 0))
+        pygame.gfxdraw.filled_circle(screen, int(particleList[i].posX), int(particleList[i].posY),
+                                     int(particleList[i].calc_size() + wobble), particleList[i].calc_colour())
+        pygame.gfxdraw.aacircle(screen, int(particleList[i].posX), int(particleList[i].posY),
+                                int(particleList[i].calc_size() + wobble), particleList[i].calc_line_colour())
+
+        # check for collisions with shockwave
+    i = 0
+    while i < len(particleList):
+        i += 1
+
+    # draw and expand shockwave
+    i = 0
+    while i < len(shockwaveList):
+        # draw a not anti-aliased circle
+        colDiff = 50 * (math.sqrt(shockwaveList[i].currentEnergy) / math.sqrt(shockwaveList[i].startingEnergy))
+        if shockwaveList[i].fake:
+            pygame.draw.circle(screen, (200 + colDiff, 200 + colDiff, 200 + colDiff),
+                               (int(shockwaveList[i].posX), int(shockwaveList[i].posY)),
+                               int(shockwaveList[i].radius), int(shockwaveList[i].width + 0.6))
+        else:
+            pygame.draw.circle(screen, (100 + colDiff * 2, 100 + colDiff * 2, 100 + colDiff * 2),
+                               (int(shockwaveList[i].posX), int(shockwaveList[i].posY)),
+                               int(shockwaveList[i].radius), int(shockwaveList[i].width + 0.6))
+
+        # IT GROWS!!! :O
+        # print(int(shockwaveList[i].width + 0.6))
+        shockwaveList[i].expand()
+        # delete shockwave if its energy is too low
+        if shockwaveList[i].currentEnergy < 10:
+            del (shockwaveList[i])
+
+        i += 1
 
     # garbage collection!!! Removes particles that fly too far, also counts down invulnerability
     for i in range(len(particleList)):
@@ -307,5 +388,5 @@ while True:
     # should make it 60FPS max
     clock.tick(int(60 * timeAccel))
     for event in pygame.event.get():
-        if event.type == pygame.QUIT: sys.exit()
-
+        if event.type == pygame.QUIT:
+            sys.exit()

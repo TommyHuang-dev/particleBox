@@ -20,13 +20,14 @@ class Particle:
     invul = 0  # invulnerability frames
 
     # initialize the object
-    def __init__(self, init_pos_x, init_pos_y, init_vel, init_direction, init_mass):
+    def __init__(self, init_pos_x, init_pos_y, init_vel, init_direction, init_mass, particle_type):
         # these are defined on particle creation
         self.vel = init_vel
         self.direction = init_direction
         self.posX = init_pos_x
         self.posY = init_pos_y
         self.mass = init_mass
+        self.type = particle_type  # "matter" or "antimatter"
 
         # based on the defined attributes in __init__
         damage = 0  # starts with minimum damage, gradually lowers to 0 if greater than 0
@@ -35,15 +36,30 @@ class Particle:
 
     # functions of particle
     def calc_threshold(self):
-        return (self.mass ** 1.04) + 5
+        return self.mass + 5
 
     # get radius of particle
     def calc_size(self):
         return math.sqrt(self.mass)
 
     def calc_colour(self):
-        visual_dmg = int(self.damage / self.dmgThreshold * 200)
-        return 100 + int(visual_dmg * 0.75), 100 - int(visual_dmg * 0.4), 100 - int(visual_dmg * 0.4)
+        visual_dmg = int(self.damage / self.dmgThreshold * 200)  # value from 0 to 200 depending on how damaged it is
+        if visual_dmg > 200:
+            visual_dmg = 200
+        if self.type == "matter":
+            # return 100 + int(visual_dmg * 0.75), 100 - int(visual_dmg * 0.4), 100 - int(visual_dmg * 0.4)
+            return 50 + visual_dmg * 0.1, 80 + visual_dmg * 0.85, 50 + visual_dmg * 0.1
+
+        elif self.type == "antimatter":
+            return 80 + visual_dmg * 0.85, 50 + visual_dmg * 0.1, 50 + visual_dmg * 0.1
+
+    def calc_line_colour(self):
+        if self.type == "matter":
+            return 75, 225, 75
+
+        elif self.type == "antimatter":
+            return 225, 75, 75
+
 
     # returns how much the particle heals
     def calc_heal(self):
@@ -75,4 +91,3 @@ class Particle:
         new_angvel = xyVel_to_angVel(initial_xy_vel)
         self.vel = new_angvel[1]
         self.direction = new_angvel[0]
-
