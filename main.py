@@ -270,7 +270,8 @@ while True:
                 elif particleList[i].type != particleList[j].type:
                     # calculate mass loss and the energy released based on the smaller of the two particles
                     massLoss = min(particleList[i].mass, particleList[j].mass)
-                    energyRelease = massLoss * 10 * 2
+                    energyRelease = massLoss * 15 * 2
+                    xyDiff = [particleList[i].posX - particleList[j].posX, particleList[i].posY - particleList[j].posY]
                     shockwaveXY = find_center(particleList[i], particleList[j])
 
                     # cause particles to lose mass
@@ -333,10 +334,25 @@ while True:
         pygame.gfxdraw.aacircle(screen, int(particleList[i].posX), int(particleList[i].posY),
                                 int(particleList[i].calc_size() + wobble), particleList[i].calc_line_colour())
 
-        # check for collisions with shockwave
-    i = 0
-    while i < len(particleList):
-        i += 1
+    # check for collisions with shockwave
+    for i in range(len(shockwaveList)):
+        # so many nested statements :O
+        if not shockwaveList[i].fake:
+            for j in range(len(particleList)):
+                # make sure the particle doesnt get hit by the same shockwave twice
+                if particleList[j] not in shockwaveList[i].hitList:
+                    distance = calc_hypotenuse(shockwaveList[i].posX - particleList[j].posX,
+                                           shockwaveList[i].posY - particleList[j].posY)
+                    minDistance = shockwaveList[i].radius + particleList[j].size * 0.95 + 1
+                    # check if the shockwave reaches the particle
+                    if shockwaveList[i].radius / 2 - 25 < distance < minDistance:
+                        xyDiff = [shockwaveList[i].posX - particleList[j].posY,
+                                  shockwaveList[i].posY, particleList[j].posY]
+                        # deal damage and apply a force
+                        shockwaveList[i].hitList.append(particleList[j])
+                        particleList[j].damage += shockwaveList[i].currentEnergy * 0.75
+                        particleList[j].apply_force(math.atan2(-(xyDiff[1]), xyDiff[0]),
+                                                    (((shockwaveList[i].currentEnergy / 2) ** 0.75) * 400))
 
     # draw and expand shockwave
     i = 0

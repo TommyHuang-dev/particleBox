@@ -11,16 +11,17 @@ class Shockwave:
         self.posY = init_pos_y
         self.fake = fake
 
-        self.radius = 4 + (math.sqrt(self.startingEnergy / 10) / 10)
-        self.startingWidth = self.radius / 1.5
+        self.radius = 5 + (math.sqrt(self.startingEnergy / 5) / 2)
+        self.startingWidth = self.radius / 4
         self.width = self.startingWidth
         self.hitList = []
 
     # grow ring and lower energy
     def expand(self):
-        self.radius += 4 + (math.sqrt(self.currentEnergy / 2) / 10)
-        self.width = self.width - 0.1
-        self.currentEnergy = (self.startingEnergy / (self.radius / 10) ** 2)
+        self.radius += 5 + (math.sqrt(self.currentEnergy / 5) / 2)
+        self.width = (self.width * 0.99 - 0.2)
+        self.currentEnergy = (self.startingEnergy / (self.radius / 8) ** 2)
+        # debug :P
         if self.currentEnergy > self.startingEnergy:
             self.currentEnergy = self.startingEnergy
         # make sure width is not below 1
