@@ -14,7 +14,6 @@ import sys
 
 # this function breaks a particle apart if it takes too much damage
 def split(particle, list):
-    pass
     # init_pos_x, init_pos_y, init_vel, init_direction, init_mass
     abs_excess = particle.damage - particle.calc_threshold()  # e.g. 1200dmg, 1000threshold = 200 abs_excess
     per_excess = abs_excess / particle.calc_threshold()  # e.g. 1200dmg, 1000threshold = 0.2 per_excess
@@ -32,18 +31,19 @@ def split(particle, list):
         # make sure ejection mass doesn't exceed 1/3 of the object's mass or is too low
         if ejection_mass * 3 > particle.mass:
             ejection_mass = int(particle.mass / 3)
+
         if ejection_mass < 10:
             particle.damage -= abs_excess + 1
             break
 
-        # decrease the main particle's mass and damage
+                # decrease the main particle's mass and damage
         particle.mass -= ejection_mass
         particle.damage -= ejection_mass * 2 + abs_excess / 10
         particle.update_self()
 
         # random angle that the particle will be ejected from
-        ejection_force = random.randint(int(ejection_mass * 20.0 * (per_excess * 0.8 + 1) + math.sqrt(abs_excess) * 0.01),
-                                        int(ejection_mass * 25.0 * (per_excess * 1.0 + 1) + math.sqrt(abs_excess) * 0.01))
+        ejection_force = random.randint(int(ejection_mass * 15.0 * (per_excess * 1.0 + 1) + math.sqrt(abs_excess) * 0.05),
+                                        int(ejection_mass * 20.0 * (per_excess * 1.4 + 1) + math.sqrt(abs_excess) * 0.05))
         ejection_angle = random.uniform(0, math.pi * 2)
 
         # apply the forces
@@ -274,18 +274,22 @@ while True:
                     xyDiff = [particleList[i].posX - particleList[j].posX, particleList[i].posY - particleList[j].posY]
                     shockwaveXY = find_center(particleList[i], particleList[j])
 
+                    # generate a new shockwave!! SPOOKY
+                    newShockwave = Shockwave(shockwaveXY[0], shockwaveXY[1], energyRelease, False)
+                    shockwaveList.append(newShockwave)
+
                     # cause particles to lose mass
                     particleList[i].mass -= massLoss
                     particleList[j].mass -= massLoss
                     # delete the particles if mass gets too low
                     if particleList[j].mass < 10:
                         del(particleList[j])
+                    else:
+                        particleList[j].damage += energyRelease / 4
                     if particleList[i].mass < 10:
                         del(particleList[i])
-
-                    # generate a new shockwave!! SPOOKY
-                    newShockwave = Shockwave(shockwaveXY[0], shockwaveXY[1], energyRelease, False)
-                    shockwaveList.append(newShockwave)
+                    else:
+                        particleList[i].damage += energyRelease / 4
 
             j += 1
 
@@ -293,7 +297,7 @@ while True:
 
     # create new particles from damaged one
     for i in range(len(particleList)):
-        if particleList[i].damage > particleList[i].dmgThreshold:
+        if particleList[i].mass > 20 and particleList[i].damage > particleList[i].dmgThreshold:
             split(particleList[i], particleList)
 
     # apply forces and move each particle
@@ -345,22 +349,22 @@ while True:
                                            shockwaveList[i].posY - particleList[j].posY)
                     minDistance = shockwaveList[i].radius + particleList[j].size * 0.95 + 1
                     # check if the shockwave reaches the particle
-                    if shockwaveList[i].radius / 2 - 25 < distance < minDistance:
-                        xyDiff = [shockwaveList[i].posX - particleList[j].posY,
-                                  shockwaveList[i].posY, particleList[j].posY]
+                    if shockwaveList[i].radius / 2 - 50 < distance < minDistance:
+                        xyDiff = [shockwaveList[i].posX - particleList[j].posX,
+                                  shockwaveList[i].posY - particleList[j].posY]
                         # deal damage and apply a force
                         shockwaveList[i].hitList.append(particleList[j])
-                        particleList[j].damage += shockwaveList[i].currentEnergy * 0.75
-                        particleList[j].apply_force(math.atan2(-(xyDiff[1]), xyDiff[0]),
-                                                    (((shockwaveList[i].currentEnergy / 2) ** 0.75) * 400))
+                        particleList[j].damage += shockwaveList[i].currentEnergy
+                        particleList[j].apply_force((((shockwaveList[i].currentEnergy / 2) ** 0.75) * 25),
+                                                    math.atan2(-xyDiff[1], xyDiff[0]) + math.pi)
 
     # draw and expand shockwave
     i = 0
     while i < len(shockwaveList):
         # draw a not anti-aliased circle
-        colDiff = 50 * (math.sqrt(shockwaveList[i].currentEnergy) / math.sqrt(shockwaveList[i].startingEnergy))
+        colDiff = 50 * (math.sqrt(shockwaveList[i].currentEnergy) / math.sqrt(shockwaveList[i].startingEnergy)) # TODO FIX THIS
         if shockwaveList[i].fake:
-            pygame.draw.circle(screen, (200 + colDiff, 200 + colDiff, 200 + colDiff),
+            pygame.draw.circle(screen, (200, 200, 200),
                                (int(shockwaveList[i].posX), int(shockwaveList[i].posY)),
                                int(shockwaveList[i].radius), int(shockwaveList[i].width + 0.6))
         else:
@@ -381,8 +385,8 @@ while True:
     for i in range(len(particleList)):
         particleList[i].invul -= 1
         # garbage collection!!! If a particle is super far away, delete it
-        if not -10000 < particleList[i].posX < disLength + 10000 or \
-                not -10000 < particleList[i].posY < disHeight + 10000:
+        if not -5000 < particleList[i].posX < disLength + 5000 or \
+                not -5000 < particleList[i].posY < disHeight + 5000:
             del (particleList[i])
             break
 

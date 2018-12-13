@@ -5,19 +5,24 @@ class Shockwave:
     # initialize the object
     # start energy = 100 * 10 * 2 = 2000
     def __init__(self, init_pos_x, init_pos_y, init_energy, fake):
-        self.startingEnergy = init_energy
+        self.startingEnergy = init_energy  # collision energy
         self.currentEnergy = self.startingEnergy
         self.posX = init_pos_x
         self.posY = init_pos_y
         self.fake = fake
 
-        self.radius = 5 + (math.sqrt(self.startingEnergy / 5) / 2)
+        self.radius = 5 + ((self.startingEnergy / 4) ** 0.4)
+        print("rad: ", self.radius)
         self.startingWidth = self.radius / 4
         self.width = self.startingWidth
         self.hitList = []
 
+        # update starting energy
+        self.currentEnergy = (self.startingEnergy / (self.radius / 8) ** 2)
+
     # grow ring and lower energy
     def expand(self):
+        print(self.currentEnergy)
         self.radius += 5 + (math.sqrt(self.currentEnergy / 5) / 2)
         self.width = (self.width * 0.99 - 0.2)
         self.currentEnergy = (self.startingEnergy / (self.radius / 8) ** 2)
