@@ -155,8 +155,8 @@ while True:
     elif pressed[pygame.K_q] and changeAccelDelay[0] <= 0:  # slow down
         timeAccel *= 0.5
         changeAccelDelay[0] = changeAccelDelay[1]
-        if timeAccel < 0.5:
-            timeAccel = 0.5
+        if timeAccel < 0.25:
+            timeAccel = 0.25
 
     # create new particles
     # left click = matter, right click = antimatter
@@ -178,7 +178,7 @@ while True:
         buttonPressed = False
         # handle velocities and angles here:
         distance = math.sqrt((selectedPos[0] - mousePos[0]) ** 2 + (selectedPos[1] - mousePos[1]) ** 2)
-        initVel = distance / 4
+        initVel = distance / 2
         initAngle = math.atan2(-(selectedPos[1] - mousePos[1]), selectedPos[0] - mousePos[0])
 
         # instantiate!!! very exciting!!! waow
@@ -270,7 +270,7 @@ while True:
                 elif particleList[i].type != particleList[j].type:
                     # calculate mass loss and the energy released based on the smaller of the two particles
                     massLoss = min(particleList[i].mass, particleList[j].mass)
-                    energyRelease = massLoss * 15 * 2
+                    energyRelease = massLoss * 20 * 2
                     xyDiff = [particleList[i].posX - particleList[j].posX, particleList[i].posY - particleList[j].posY]
                     shockwaveXY = find_center(particleList[i], particleList[j])
 
@@ -392,14 +392,14 @@ while True:
 
     # UI elements
     # display the size of newly created particles
-    size_text = sizeFont.render("size: " + str(newParticleSize), False, (0, 0, 0))
+    size_text = sizeFont.render("mass: " + str(newParticleSize), False, (0, 0, 0))
     screen.blit(size_text, (30, disHeight - 50))
 
     # display time warp!!
     if timeAccel >= 1:
         time_text = sizeFont.render("time scale: " + str(int(timeAccel)) + "x", False, (0, 0, 0))
     else:
-        time_text = sizeFont.render("time scale: " + str(round(timeAccel, 1)) + "x", False, (0, 0, 0))
+        time_text = sizeFont.render("time scale: " + str(round(timeAccel, 2)) + "x", False, (0, 0, 0))
     screen.blit(time_text, (30, disHeight - 100))
 
     # update display!

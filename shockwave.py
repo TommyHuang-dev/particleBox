@@ -12,7 +12,6 @@ class Shockwave:
         self.fake = fake
 
         self.radius = 5 + ((self.startingEnergy / 4) ** 0.4)
-        print("rad: ", self.radius)
         self.startingWidth = self.radius / 4
         self.width = self.startingWidth
         self.hitList = []
@@ -22,7 +21,6 @@ class Shockwave:
 
     # grow ring and lower energy
     def expand(self):
-        print(self.currentEnergy)
         self.radius += 5 + (math.sqrt(self.currentEnergy / 5) / 2)
         self.width = (self.width * 0.99 - 0.2)
         self.currentEnergy = (self.startingEnergy / (self.radius / 8) ** 2)
