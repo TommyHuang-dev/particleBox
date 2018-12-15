@@ -14,6 +14,11 @@ import sys
 
 # this function breaks a particle apart if it takes too much damage
 def split(particle, list):
+    # small particles cannot be destroyed
+    if particle.mass <= 20:
+        particle.damage = particle.dmgThreshold - 1
+        return
+
     # init_pos_x, init_pos_y, init_vel, init_direction, init_mass
     abs_excess = particle.damage - particle.calc_threshold()  # e.g. 1200dmg, 1000threshold = 200 abs_excess
     per_excess = abs_excess / particle.calc_threshold()  # e.g. 1200dmg, 1000threshold = 0.2 per_excess
@@ -33,7 +38,7 @@ def split(particle, list):
             ejection_mass = int(particle.mass / 3)
 
         if ejection_mass < 10:
-            particle.damage -= abs_excess + 1
+            particle.damage -= (abs_excess + 1)
             break
 
                 # decrease the main particle's mass and damage
@@ -232,7 +237,7 @@ while True:
 
                     # 1/2 mv^2
                     totalFinalVel = calc_hypotenuse(collVel[0], collVel[1])
-                    impactDamage = (totalFinalVel / 20) ** 2 * min([particleList[i].mass, particleList[j].mass]) / 12
+                    impactDamage = (totalFinalVel / 10) ** 2 * min([particleList[i].mass, particleList[j].mass]) / 100
 
                     # calculate the initial velocity of the new particle (total velocity / mass)
                     initialXVel = velocity1[0] * particleList[i].mass + velocity2[0] * particleList[j].mass
@@ -253,13 +258,12 @@ while True:
                     # update all attributes
                     newParticle.update_self()
                     newParticle.damage = particleList[i].damage + particleList[j].damage + impactDamage
-
                     # CREATE A FAKE SMALL SHOCKWAVE FOR VISUAL EFFECT
                     # calculate mass loss and the energy released based on the smaller of the two particles
                     shockwaveXY = find_center(particleList[i], particleList[j])
 
                     if impactDamage > 1:
-                        newShockwave = Shockwave(shockwaveXY[0], shockwaveXY[1], impactDamage / 2.5, True)
+                        newShockwave = Shockwave(shockwaveXY[0], shockwaveXY[1], impactDamage / 3, True)
                         shockwaveList.append(newShockwave)
 
                     # delete old particles, start new one
@@ -270,7 +274,7 @@ while True:
                 elif particleList[i].type != particleList[j].type:
                     # calculate mass loss and the energy released based on the smaller of the two particles
                     massLoss = min(particleList[i].mass, particleList[j].mass)
-                    energyRelease = massLoss * 20 * 2
+                    energyRelease = massLoss * 16 * 2
                     xyDiff = [particleList[i].posX - particleList[j].posX, particleList[i].posY - particleList[j].posY]
                     shockwaveXY = find_center(particleList[i], particleList[j])
 
@@ -297,7 +301,7 @@ while True:
 
     # create new particles from damaged one
     for i in range(len(particleList)):
-        if particleList[i].mass > 20 and particleList[i].damage > particleList[i].dmgThreshold:
+        if particleList[i].damage > particleList[i].dmgThreshold:
             split(particleList[i], particleList)
 
     # apply forces and move each particle
@@ -332,6 +336,9 @@ while True:
         # vibrate particles if they take too much damage
         wobble = random.uniform(-math.sqrt(particleList[i].damage) / 25, math.sqrt(particleList[i].damage) / 25)
 
+        if particleList[i].calc_size() + wobble < 2:
+            wobble = particleList[i].calc_size() * 0.8
+
         # draw on screen
         pygame.gfxdraw.filled_circle(screen, int(particleList[i].posX), int(particleList[i].posY),
                                      int(particleList[i].calc_size() + wobble), particleList[i].calc_colour())
@@ -355,20 +362,20 @@ while True:
                         # deal damage and apply a force
                         shockwaveList[i].hitList.append(particleList[j])
                         particleList[j].damage += shockwaveList[i].currentEnergy
-                        particleList[j].apply_force((((shockwaveList[i].currentEnergy / 2) ** 0.75) * 25),
+                        particleList[j].apply_force(((shockwaveList[i].currentEnergy / 2) * 10 * (particleList[j].size / 8)),
                                                     math.atan2(-xyDiff[1], xyDiff[0]) + math.pi)
 
     # draw and expand shockwave
     i = 0
     while i < len(shockwaveList):
         # draw a not anti-aliased circle
-        colDiff = 50 * (math.sqrt(shockwaveList[i].currentEnergy) / math.sqrt(shockwaveList[i].startingEnergy)) # TODO FIX THIS
+        colDiff = 40 * shockwaveList[i].width / shockwaveList[i].startingWidth
         if shockwaveList[i].fake:
-            pygame.draw.circle(screen, (200, 200, 200),
+            pygame.draw.circle(screen, (225 - colDiff * 2, 225 - colDiff * 2, 225 - colDiff * 2),
                                (int(shockwaveList[i].posX), int(shockwaveList[i].posY)),
                                int(shockwaveList[i].radius), int(shockwaveList[i].width + 0.6))
         else:
-            pygame.draw.circle(screen, (100 + colDiff * 2, 100 + colDiff * 2, 100 + colDiff * 2),
+            pygame.draw.circle(screen, (120, 130 + colDiff * 2.25, 150 + colDiff * 2.5),
                                (int(shockwaveList[i].posX), int(shockwaveList[i].posY)),
                                int(shockwaveList[i].radius), int(shockwaveList[i].width + 0.6))
 
