@@ -240,7 +240,8 @@ while True:
 
                     # 1/2 mv^2
                     totalFinalVel = calc_hypotenuse(collVel[0], collVel[1])
-                    impactDamage = (totalFinalVel / 10) ** 2 * min([particleList[i].mass, particleList[j].mass]) / 100
+                    impactDamage = (totalFinalVel / 5) ** 1.6 * min([particleList[i].mass, particleList[j].mass]) / 100
+                    print(totalFinalVel)
 
                     # calculate the initial velocity of the new particle (total velocity / mass)
                     initialXVel = velocity1[0] * particleList[i].mass + velocity2[0] * particleList[j].mass
