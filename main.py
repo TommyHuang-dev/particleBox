@@ -24,8 +24,8 @@ def split(particle, list):
     per_excess = abs_excess / particle.calc_threshold()  # e.g. 1200dmg, 1000threshold = 0.2 per_excess
 
     # more damaged objects spawn moar
-    num_spawned = random.randint(int(math.sqrt(particle.mass) / 500 + per_excess * 4),
-                                 int(math.sqrt(particle.mass) / 300 + per_excess * 6))
+    num_spawned = random.randint(int(per_excess * 3) + 1,
+                                 int(per_excess * 5) + 2)
     if num_spawned < 1:
         num_spawned = 1
 
@@ -84,7 +84,10 @@ def find_center_of_mass(particle1, particle2):
 # find the average x y without weighting the mass
 def find_center(particle1, particle2):
     xy_diff = [particle1.posX - particle2.posX, particle1.posY - particle2.posY]
-    center_pos = [particle1.posX - (xy_diff[0] / 2), particle1.posY - (xy_diff[1] / 2)]
+    ratio = particle1.size / (particle1.size + particle2.size)
+    center_pos = [particle1.posX - (xy_diff[0] * ratio),
+                  particle1.posY - (xy_diff[1] * ratio)]
+
     return center_pos
 
 # setup pygame
@@ -258,11 +261,13 @@ while True:
                     # update all attributes
                     newParticle.update_self()
                     newParticle.damage = particleList[i].damage + particleList[j].damage + impactDamage
-                    # CREATE A FAKE SMALL SHOCKWAVE FOR VISUAL EFFECT
-                    # calculate mass loss and the energy released based on the smaller of the two particles
-                    shockwaveXY = find_center(particleList[i], particleList[j])
 
-                    if impactDamage > 1:
+                    # fake shockwave on higher energy collisions
+                    if impactDamage > 30:
+                        # CREATE A FAKE SMALL SHOCKWAVE FOR VISUAL EFFECT
+                        # calculate mass loss and the energy released based on the smaller of the two particles
+                        shockwaveXY = find_center(particleList[i], particleList[j])
+
                         newShockwave = Shockwave(shockwaveXY[0], shockwaveXY[1], impactDamage / 3, True)
                         shockwaveList.append(newShockwave)
 
