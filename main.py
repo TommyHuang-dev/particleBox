@@ -47,18 +47,18 @@ def split(particle, list):
         particle.update_self()
 
         # random angle that the particle will be ejected from
-        ejection_force = random.randint(int(ejection_mass * 15.0 * (per_excess * 1.0 + 1) + math.sqrt(abs_excess) * 0.05),
-                                        int(ejection_mass * 20.0 * (per_excess * 1.4 + 1) + math.sqrt(abs_excess) * 0.05))
+        ejection_force = random.randint(int((ejection_mass * 12) * math.sqrt(abs_excess) * 0.06),
+                                        int((ejection_mass * 16) * math.sqrt(abs_excess) * 0.09))
         ejection_angle = random.uniform(0, math.pi * 2)
 
         # apply the forces
-        init_pos = angVel_to_xy(ejection_angle, particle.calc_size() * 1.1 + 2)
+        init_pos = angVel_to_xy(ejection_angle, particle.calc_size() * 1.15 + 2)
         init_vel = ejection_force / ejection_mass
 
         # create new particle, apply force to old particle
         new_particle = Particle(particle.posX + init_pos[0], particle.posY +
                                 init_pos[1], init_vel, ejection_angle, ejection_mass, particle.type)
-        new_particle.invul = 15  # invulnerable for 0.1s so it doesnt instantly recombine
+        new_particle.invul = 15  # invulnerable for some frames so it doesnt instantly recombine
         new_particle.damage = random.uniform(new_particle.calc_threshold() * 0.4, new_particle.calc_threshold() * 0.8)
         particle.apply_force(ejection_force, ejection_angle + math.pi)
 
@@ -241,7 +241,6 @@ while True:
                     # 1/2 mv^2
                     totalFinalVel = calc_hypotenuse(collVel[0], collVel[1])
                     impactDamage = (totalFinalVel / 5) ** 1.6 * min([particleList[i].mass, particleList[j].mass]) / 100
-                    print(totalFinalVel)
 
                     # calculate the initial velocity of the new particle (total velocity / mass)
                     initialXVel = velocity1[0] * particleList[i].mass + velocity2[0] * particleList[j].mass
@@ -362,13 +361,13 @@ while True:
                                            shockwaveList[i].posY - particleList[j].posY)
                     minDistance = shockwaveList[i].radius + particleList[j].size * 0.95 + 1
                     # check if the shockwave reaches the particle
-                    if shockwaveList[i].radius / 2 - 50 < distance < minDistance:
+                    if shockwaveList[i].radius / 2 - (shockwaveList[i].width * 5) < distance < minDistance:
                         xyDiff = [shockwaveList[i].posX - particleList[j].posX,
                                   shockwaveList[i].posY - particleList[j].posY]
                         # deal damage and apply a force
                         shockwaveList[i].hitList.append(particleList[j])
                         particleList[j].damage += shockwaveList[i].currentEnergy
-                        particleList[j].apply_force(((shockwaveList[i].currentEnergy / 2) * 10 * (particleList[j].size / 8)),
+                        particleList[j].apply_force((shockwaveList[i].currentEnergy * 5 * (particleList[j].size / 6)),
                                                     math.atan2(-xyDiff[1], xyDiff[0]) + math.pi)
 
     # draw and expand shockwave
@@ -386,7 +385,6 @@ while True:
                                int(shockwaveList[i].radius), int(shockwaveList[i].width + 0.6))
 
         # IT GROWS!!! :O
-        # print(int(shockwaveList[i].width + 0.6))
         shockwaveList[i].expand()
         # delete shockwave if its energy is too low
         if shockwaveList[i].currentEnergy < 10:
