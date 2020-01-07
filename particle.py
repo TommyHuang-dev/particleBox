@@ -63,7 +63,7 @@ class Particle:
 
     # returns how much the particle heals
     def calc_heal(self):
-        return math.sqrt(self.damage / 300) + math.sqrt(self.dmgThreshold / 600)
+        return math.sqrt(self.damage / 400) + math.sqrt(self.dmgThreshold / 600)
 
     def update_self(self):
         self.dmgThreshold = self.calc_threshold()

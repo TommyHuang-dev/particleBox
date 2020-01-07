@@ -7,15 +7,10 @@ import random
 import time
 import sys
 
-# TODO: circles are displayed, they effect eachother using gravity
-# TODO: they can collide with eachother and explode
-# TODO: wobbly particles if they are on the brink of exploding
-
-
 # this function breaks a particle apart if it takes too much damage
 def split(particle, list):
     # small particles cannot be destroyed
-    if particle.mass <= 20:
+    if particle.mass <= 15:
         particle.damage = particle.dmgThreshold - 1
         return
 
@@ -37,7 +32,7 @@ def split(particle, list):
         if ejection_mass * 3 > particle.mass:
             ejection_mass = int(particle.mass / 3)
 
-        if ejection_mass < 10:
+        if ejection_mass < 5:
             particle.damage -= (abs_excess + 1)
             break
 
@@ -240,7 +235,7 @@ while True:
 
                     # 1/2 mv^2
                     totalFinalVel = calc_hypotenuse(collVel[0], collVel[1])
-                    impactDamage = (totalFinalVel / 5) ** 1.6 * min([particleList[i].mass, particleList[j].mass]) / 100
+                    impactDamage = (totalFinalVel / 4) ** 1.5 * min([particleList[i].mass, particleList[j].mass]) / 100
 
                     # calculate the initial velocity of the new particle (total velocity / mass)
                     initialXVel = velocity1[0] * particleList[i].mass + velocity2[0] * particleList[j].mass
@@ -279,7 +274,7 @@ while True:
                 elif particleList[i].type != particleList[j].type:
                     # calculate mass loss and the energy released based on the smaller of the two particles
                     massLoss = min(particleList[i].mass, particleList[j].mass)
-                    energyRelease = massLoss * 16 * 2
+                    energyRelease = massLoss * 36
                     xyDiff = [particleList[i].posX - particleList[j].posX, particleList[i].posY - particleList[j].posY]
                     shockwaveXY = find_center(particleList[i], particleList[j])
 
@@ -291,23 +286,33 @@ while True:
                     particleList[i].mass -= massLoss
                     particleList[j].mass -= massLoss
                     # delete the particles if mass gets too low
-                    if particleList[j].mass < 10:
+                    if particleList[j].mass < 20:
                         del(particleList[j])
                     else:
-                        particleList[j].damage += energyRelease / 4
-                    if particleList[i].mass < 10:
+                        particleList[j].damage += energyRelease / 5
+                    if particleList[i].mass < 20:
                         del(particleList[i])
                     else:
-                        particleList[i].damage += energyRelease / 4
+                        particleList[i].damage += energyRelease / 5
 
             j += 1
 
         i += 1
-
+	
     # create new particles from damaged one
-    for i in range(len(particleList)):
+    i = 0
+    while i < len(particleList):
         if particleList[i].damage > particleList[i].dmgThreshold:
-            split(particleList[i], particleList)
+            # small particles may get vaporized
+            if particleList[i].mass <= 30 and particleList[i].damage > particleList[i].dmgThreshold * 15:
+                newShockwave = Shockwave(particleList[i].posX, particleList[i].posY, particleList[i].mass * 15, True)
+                shockwaveList.append(newShockwave)       
+                del(particleList[i])
+                i -= 1
+            else:
+                split(particleList[i], particleList)
+
+        i += 1
 
     # apply forces and move each particle
     for i in range(len(particleList)):
